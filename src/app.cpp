@@ -13,7 +13,11 @@ namespace
     std::map<int, bool> keyboard;
 
     SDL_Window *window = nullptr;
-    SDL_Renderer *render = nullptr;
+    SDL_Renderer *renderer = nullptr;
+}
+
+SDL_Renderer *App::render() {
+    return renderer;
 }
 
 bool App::run(const Config& config)
@@ -40,9 +44,9 @@ bool App::run(const Config& config)
         return false;
     }
 
-    render = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
-    if (render == nullptr) {
-        fprintf(stderr, "failed to create sdl renderer: %s\n", SDL_GetError());
+    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+    if (renderer == nullptr) {
+        fprintf(stderr, "failed to create sdl rendererer: %s\n", SDL_GetError());
         return false;
     }
 
@@ -65,16 +69,16 @@ bool App::run(const Config& config)
 
         app_config.on_update();
 
-        SDL_SetRenderDrawColor(render, 0, 191, 255, 1);
-        SDL_RenderClear(render);
+        SDL_SetRenderDrawColor(renderer, 0, 191, 255, 1);
+        SDL_RenderClear(renderer);
         app_config.on_render();
-        SDL_RenderPresent(render);
+        SDL_RenderPresent(renderer);
     }
 
     app_is_exiting = true;
     app_config.on_shutdown();
 
-    SDL_DestroyRenderer(render);
+    SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();
 

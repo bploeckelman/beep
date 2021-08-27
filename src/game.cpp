@@ -1,48 +1,52 @@
 #include "game.h"
+#include "app.h"
 #include <SDL_image.h>
 
 namespace Beep
 {
+    namespace
+    {
+        typedef struct Texture
+        {
+            const char *filename;
+            SDL_Texture *tex;
+            SDL_Rect rect;
+        } Texture;
+
+        Texture texture = { "test.png" };
+    }
+
     void Game::startup()
     {
         printf("game startup\n");
 
-        const char *filename = "test.png";
-        SDL_Surface *surface = IMG_Load(filename);
-        if (surface == nullptr) {
-            fprintf(stderr, "failed to load surface for image '%s'\n", filename);
+        texture.tex = IMG_LoadTexture(App::render(), texture.filename);
+        if (texture.tex == nullptr) {
+            fprintf(stderr, "failed to load texture for image '%s'\n", texture.filename);
             SDL_Quit();
         } else {
-            printf("Loaded image '%s'\n", filename);
+            SDL_QueryTexture(texture.tex, nullptr, nullptr, &texture.rect.w, &texture.rect.h);
+            printf("Loaded image '%s'\n", texture.filename);
         }
-
-        SDL_FreeSurface(surface);
     }
 
     void Game::shutdown()
     {
         printf("game shutdown\n");
-    }
 
-    bool enough_already_update = false;
-    bool enough_already_render = false;
+        if (texture.tex != nullptr) {
+            SDL_DestroyTexture(texture.tex);
+            printf("Unloaded image '%s'\n", texture.filename);
+        }
+    }
 
     void Game::update()
     {
-        if (enough_already_update) {
-            return;
-        }
-        enough_already_update = true;
-        printf("game update\n");
     }
 
     void Game::render()
     {
-        if (enough_already_render) {
-            return;
-        }
-        enough_already_render = true;
-        printf("game render\n");
+        SDL_RenderCopy(App::render(), texture.tex, nullptr, &texture.rect);
     }
 
 }
