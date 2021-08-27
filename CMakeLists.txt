@@ -8,6 +8,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(SDL2_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/libs/sdl/include)
 add_subdirectory(libs/sdl)
 
+set(SDL2_IMAGE_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/libs/sdl_image)
+add_subdirectory(libs/sdl_image)
 #add_subdirectory(libs/imgui)
 
 add_executable(${PROJECT_NAME}
