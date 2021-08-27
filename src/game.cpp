@@ -6,22 +6,33 @@ namespace Beep
 
     void Game::startup()
     {
-        printf("game startup");
+        printf("game startup\n");
     }
 
     void Game::shutdown()
     {
-        printf("game shutdown");
+        printf("game shutdown\n");
     }
+
+    bool enough_already_update = false;
+    bool enough_already_render = false;
 
     void Game::update()
     {
-        printf("game update");
+        if (enough_already_update) {
+            return;
+        }
+        enough_already_update = true;
+        printf("game update\n");
     }
 
     void Game::render()
     {
-        printf("game render");
+        if (enough_already_render) {
+            return;
+        }
+        enough_already_render = true;
+        printf("game render\n");
     }
 
 }
