@@ -1,12 +1,22 @@
 #include "game.h"
-
+#include <SDL_image.h>
 
 namespace Beep
 {
-
     void Game::startup()
     {
         printf("game startup\n");
+
+        const char *filename = "test.png";
+        SDL_Surface *surface = IMG_Load(filename);
+        if (surface == nullptr) {
+            fprintf(stderr, "failed to load surface for image '%s'\n", filename);
+            SDL_Quit();
+        } else {
+            printf("Loaded image '%s'\n", filename);
+        }
+
+        SDL_FreeSurface(surface);
     }
 
     void Game::shutdown()
