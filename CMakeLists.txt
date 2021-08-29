@@ -25,6 +25,9 @@ target_include_directories(imgui PRIVATE
         libs/sdl/include
         )
 
+# Configure and include gl3w to wrangle opengl extensions for us
+add_subdirectory(libs/gl3w)
+
 add_executable(${PROJECT_NAME}
         src/main.cpp
         src/common.h
@@ -44,6 +47,7 @@ include_directories(${PROJECT_NAME} PRIVATE
 
 target_link_libraries(${PROJECT_NAME}
         opengl32
+        gl3w
         SDL2main SDL2-static
         imgui
         )

@@ -1,3 +1,4 @@
+#include <GL/gl3w.h>
 #include <imgui.h>
 #include <imgui_impl_sdl.h>
 #include <imgui_impl_opengl3.h>
@@ -31,30 +32,6 @@ namespace
 
     // --------------------------------------------------
 
-    PFNGLGENBUFFERSPROC              glGenBuffers;
-    PFNGLBINDBUFFERPROC              glBindBuffer;
-    PFNGLBUFFERDATAPROC              glBufferData;
-    PFNGLDELETEBUFFERSPROC           glDeleteBuffers;
-    PFNGLGENVERTEXARRAYSPROC         glGenVertexArrays;
-    PFNGLBINDVERTEXARRAYPROC         glBindVertexArray;
-    PFNGLDELETEVERTEXARRAYSPROC      glDeleteVertexArrays;
-    PFNGLCREATESHADERPROC            glCreateShader;
-    PFNGLSHADERSOURCEPROC            glShaderSource;
-    PFNGLCOMPILESHADERPROC           glCompileShader;
-    PFNGLDELETESHADERPROC            glDeleteShader;
-    PFNGLGETSHADERIVPROC             glGetShaderiv;
-    PFNGLGETSHADERINFOLOGPROC        glGetShaderInfoLog;
-    PFNGLCREATEPROGRAMPROC           glCreateProgram;
-    PFNGLDELETEPROGRAMPROC           glDeleteProgram;
-    PFNGLATTACHSHADERPROC            glAttachShader;
-    PFNGLLINKPROGRAMPROC             glLinkProgram;
-    PFNGLUSEPROGRAMPROC              glUseProgram;
-    PFNGLGETPROGRAMIVPROC            glGetProgramiv;
-    PFNGLGETPROGRAMINFOLOGPROC       glGetProgramInfoLog;
-    PFNGLVERTEXATTRIBPOINTERPROC     glVertexAttribPointer;
-    PFNGLENABLEVERTEXATTRIBARRAYPROC glEnableVertexAttribArray;
-    PFNGLGENERATEMIPMAPPROC          glGenerateMipmap;
-
     float vertices[] = {
             // positions          // colors           // texture coords
              0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 0.0f,   // bottom right
@@ -73,7 +50,6 @@ namespace
 
     // --------------------------------------------------
 
-    void opengl_get_extensions();
     void opengl_check_shader_compilation(ui32 shader);
     void opengl_check_program_linkage(ui32 program);
 
@@ -90,10 +66,14 @@ namespace
         }
         SDL_GL_MakeCurrent(window, context);
 
+        if (gl3wInit())
+        {
+            fprintf(stderr, "failed to initialize gl3w\n");
+            SDL_Quit();
+        }
+
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-        opengl_get_extensions();
 
         // compile and link shaders
         {
@@ -290,7 +270,6 @@ bool App::run(const Config& config)
                 glBindTexture(GL_TEXTURE_2D, texture);
                 glUseProgram(shaderProgram);
                 glBindVertexArray(vao);
-//                glDrawArrays(GL_TRIANGLES, 0, 4);
                 glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
             }
 
@@ -314,48 +293,10 @@ bool App::run(const Config& config)
 
 /**
  * OpenGL utility functions
- * - extension address lookup (TODO: should probably just use GLEW)
  * - shader compilation and linkage checks
  */
 namespace
 {
-    void *opengl_get_extension(const char *name)
-    {
-        void *proc = SDL_GL_GetProcAddress(name);
-        if (proc == nullptr)
-        {
-            fprintf(stderr, "failed to find address for %s: %s\n", name, SDL_GetError());
-            SDL_Quit();
-        }
-        return proc;
-    }
-
-    void opengl_get_extensions()
-    {
-        glGenBuffers              = (PFNGLGENBUFFERSPROC)              opengl_get_extension("glGenBuffers");
-        glBindBuffer              = (PFNGLBINDBUFFERPROC)              opengl_get_extension("glBindBuffer");
-        glBufferData              = (PFNGLBUFFERDATAPROC)              opengl_get_extension("glBufferData");
-        glDeleteBuffers           = (PFNGLDELETEBUFFERSPROC)           opengl_get_extension("glDeleteBuffers");
-        glGenVertexArrays         = (PFNGLGENVERTEXARRAYSPROC)         opengl_get_extension("glGenVertexArrays");
-        glBindVertexArray         = (PFNGLBINDVERTEXARRAYPROC)         opengl_get_extension("glBindVertexArray");
-        glDeleteVertexArrays      = (PFNGLDELETEVERTEXARRAYSPROC)      opengl_get_extension("glDeleteVertexArrays");
-        glCreateShader            = (PFNGLCREATESHADERPROC)            opengl_get_extension("glCreateShader");
-        glShaderSource            = (PFNGLSHADERSOURCEPROC)            opengl_get_extension("glShaderSource");
-        glCompileShader           = (PFNGLCOMPILESHADERPROC)           opengl_get_extension("glCompileShader");
-        glDeleteShader            = (PFNGLDELETESHADERPROC)            opengl_get_extension("glDeleteShader");
-        glGetShaderiv             = (PFNGLGETSHADERIVPROC)             opengl_get_extension("glGetShaderiv");
-        glGetShaderInfoLog        = (PFNGLGETSHADERINFOLOGPROC)        opengl_get_extension("glGetShaderInfoLog");
-        glCreateProgram           = (PFNGLCREATEPROGRAMPROC)           opengl_get_extension("glCreateProgram");
-        glDeleteProgram           = (PFNGLDELETEPROGRAMPROC)           opengl_get_extension("glDeleteProgram");
-        glAttachShader            = (PFNGLATTACHSHADERPROC)            opengl_get_extension("glAttachShader");
-        glLinkProgram             = (PFNGLLINKPROGRAMPROC)             opengl_get_extension("glLinkProgram");
-        glUseProgram              = (PFNGLUSEPROGRAMPROC)              opengl_get_extension("glUseProgram");
-        glGetProgramiv            = (PFNGLGETPROGRAMIVPROC)            opengl_get_extension("glGetProgramiv");
-        glGetProgramInfoLog       = (PFNGLGETPROGRAMINFOLOGPROC)       opengl_get_extension("glGetProgramInfoLog");
-        glVertexAttribPointer     = (PFNGLVERTEXATTRIBPOINTERPROC)     opengl_get_extension("glVertexAttribPointer");
-        glEnableVertexAttribArray = (PFNGLENABLEVERTEXATTRIBARRAYPROC) opengl_get_extension("glEnableVertexAttribArray");
-        glGenerateMipmap          = (PFNGLGENERATEMIPMAPPROC)          opengl_get_extension("glGenerateMipmap");
-    }
 
     void opengl_check_shader_compilation(ui32 shader)
     {
