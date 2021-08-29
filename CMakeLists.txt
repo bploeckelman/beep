@@ -42,6 +42,7 @@ add_executable(${PROJECT_NAME}
 include_directories(${PROJECT_NAME} PRIVATE
         libs/sdl/include
         libs/sdl_image
+        libs/stb
         libs/imgui
         libs/imgui/backends
         )
