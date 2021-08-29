@@ -3,7 +3,7 @@
 #include "game.h"
 #include "config.h"
 
-using namespace Beep;
+using namespace BeepBoop;
 
 namespace
 {

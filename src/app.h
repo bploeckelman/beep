@@ -2,7 +2,7 @@
 #include "config.h"
 #include <SDL_render.h>
 
-namespace Beep
+namespace BeepBoop
 {
     namespace App
     {

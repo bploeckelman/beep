@@ -2,7 +2,9 @@
 #include <cstddef>        // for integer types
 #include <functional>     // for std::function
 
-namespace Beep
+// so stupid... Beep() is a symbol in the global namespace in windows utilapiset.h
+// guess we have to use something different as our primary namespace for the project
+namespace BeepBoop
 {
 
     using i8  = int8_t;

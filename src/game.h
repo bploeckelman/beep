@@ -1,7 +1,7 @@
 #pragma once
 #include "common.h"
 
-namespace Beep
+namespace BeepBoop
 {
     struct Game
     {
