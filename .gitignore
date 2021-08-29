@@ -3,7 +3,6 @@ cmake-build-debug/
 cmake-build-release/
 
 libs/sdl/*
-libs/sdl_image/*
 libs/imgui/*
 libs/stb/*
 !libs/.gitkeep
