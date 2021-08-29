@@ -1,12 +1,11 @@
 #pragma once
 #include "config.h"
-#include <SDL_render.h>
 
 namespace BeepBoop
 {
     namespace App
     {
-        SDL_Renderer *render();
+        const Config &config();
         bool run(const Config &config);
     }
 }
