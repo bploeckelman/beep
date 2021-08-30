@@ -1,29 +1,65 @@
 #include "game.h"
 #include "app.h"
-#include <SDL_opengl.h>
+#include "graphics.h"
 
-namespace BeepBoop
+using namespace BeepBoop;
+
+namespace
 {
+    MeshRef test_mesh;
 
-    void Game::startup()
+    void create_resources();
+    void destroy_resources();
+}
+
+void Game::startup()
+{
+    printf("game startup\n");
+
+    auto cfg = App::get_config();
+    Graphics::set_viewport(0, 0, cfg.width, cfg.height);
+
+    create_resources();
+}
+
+void Game::shutdown()
+{
+    printf("game shutdown\n");
+
+    destroy_resources();
+}
+
+void Game::update()
+{
+}
+
+void Game::render()
+{
+    Graphics::draw_mesh(test_mesh);
+}
+
+namespace
+{
+    float vertices[] = {
+            // positions          // colors           // texture coords
+             0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f,   // bottom right
+             0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,   // top right
+            -0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,   // top left
+            -0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f    // bottom left
+    };
+    ui32 indices[] = {
+            0, 1, 3,
+            1, 2, 3
+    };
+    void create_resources()
     {
-        printf("game startup\n");
-
-        auto cfg = App::get_config();
-        glViewport(0, 0, cfg.width, cfg.height);
+        test_mesh = Graphics::create_mesh();
+        Graphics::mesh_set_vertices(test_mesh, vertices, 4);
+        Graphics::mesh_set_indices(test_mesh, indices, 6);
     }
 
-    void Game::shutdown()
+    void destroy_resources()
     {
-        printf("game shutdown\n");
+        Graphics::destroy_mesh(test_mesh);
     }
-
-    void Game::update()
-    {
-    }
-
-    void Game::render()
-    {
-    }
-
 }

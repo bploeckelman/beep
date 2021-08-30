@@ -19,23 +19,10 @@ namespace
     void *gl_context;
 
     // todo - these gl resources should be in Game
-    ui32 vao, vbo, ebo;
     ui32 shader_program;
     ui32 texture;
     void create_resources();
     void destroy_resources();
-
-    float vertices[] = {
-            // positions          // colors           // texture coords
-             0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f,   // bottom right
-             0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,   // top right
-            -0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,   // top left
-            -0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f    // bottom left
-    };
-    ui32 indices[] = {
-            0, 1, 3,
-            1, 2, 3
-    };
 
     void check_shader_compilation(ui32 shader);
     void check_shader_linkage(ui32 program);
@@ -72,17 +59,121 @@ void Graphics::shutdown()
     App::gl_context_destroy(gl_context);
 }
 
+void Graphics::update()
+{
+
+}
+
 void Graphics::render()
 {
-    glBindTexture(GL_TEXTURE_2D, texture);
-    glUseProgram(shader_program);
-    glBindVertexArray(vao);
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
 }
 
 void* Graphics::get_gl_context()
 {
     return gl_context;
+}
+
+void Graphics::set_viewport(i32 x, i32 y, i32 width, i32 height)
+{
+    glViewport(x, y, width, height);
+}
+
+// ----------------------------------------------------------------------------
+
+MeshRef Graphics::create_mesh()
+{
+    Mesh* mesh = new Mesh();
+
+    glGenVertexArrays(1, &(mesh->gl_id));
+    if (mesh->gl_id <= 0)
+    {
+        delete mesh;
+        return MeshRef();
+    }
+
+    return MeshRef(mesh);
+}
+
+void Graphics::destroy_mesh(const MeshRef mesh)
+{
+    if (mesh->gl_id != 0)
+    {
+        if (mesh->vertex_buffer != 0)
+        {
+            glDeleteBuffers(1, &mesh->vertex_buffer);
+            mesh->vertex_buffer = 0;
+            mesh->num_vertices = 0;
+        }
+        if (mesh->index_buffer != 0)
+        {
+            glDeleteBuffers(1, &mesh->index_buffer);
+            mesh->index_buffer = 0;
+            mesh->num_indices = 0;
+        }
+        glDeleteVertexArrays(1, &mesh->gl_id);
+    }
+    mesh->gl_id = 0;
+}
+
+void Graphics::draw_mesh(MeshRef mesh)
+{
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glUseProgram(shader_program);
+    glBindVertexArray(mesh->gl_id);
+    glDrawElements(GL_TRIANGLES, mesh->num_indices, GL_UNSIGNED_INT, 0);
+}
+
+void Graphics::mesh_set_vertices(MeshRef mesh, const void *vertices, i64 count)
+{
+    mesh->num_vertices = count;
+
+    glBindVertexArray(mesh->gl_id);
+    {
+        if (mesh->vertex_buffer == 0) {
+            glGenBuffers(1, &mesh->vertex_buffer);
+        }
+
+        // NOTE: assumes vertices are floats
+        auto vertex_data = (float*) vertices;
+        int attribs_size = 8 * sizeof(float);
+
+        // upload vertex data
+        glBindBuffer(GL_ARRAY_BUFFER, mesh->vertex_buffer);
+        glBufferData(GL_ARRAY_BUFFER, mesh->num_vertices * attribs_size * sizeof(vertex_data), vertex_data, GL_STATIC_DRAW);
+
+        // setup vertex attributes in the form: pos(3) col(3) tex(2)
+        // position attribute
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, attribs_size, (void*) 0);
+        glEnableVertexAttribArray(0);
+        // color attribute
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, attribs_size, (void*) (3 * sizeof(float)));
+        glEnableVertexAttribArray(1);
+        // texcoord attribute
+        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, attribs_size, (void*) (6 * sizeof(float)));
+        glEnableVertexAttribArray(2);
+    }
+    glBindVertexArray(0);
+}
+
+void Graphics::mesh_set_indices(MeshRef mesh, const void *indices, i64 count)
+{
+    mesh->num_indices = count;
+
+    glBindVertexArray(mesh->gl_id);
+    {
+        if (mesh->index_buffer == 0)
+        {
+            glGenBuffers(1, &mesh->index_buffer);
+        }
+
+        // NOTE: assumes indices are unsigned 32 bit ints
+        auto index_data = (ui32*) indices;
+
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->index_buffer);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh->num_indices * sizeof(index_data), index_data, GL_STATIC_DRAW);
+    }
+    glBindVertexArray(0);
 }
 
 // ----------------------------------------------------------------------------
@@ -117,7 +208,7 @@ namespace
                 "uniform sampler2D texture1;\n"
                 "void main()\n"
                 "{\n"
-                "  FragColor = texture(texture1, TexCoord);\n"// * vec4(OurColor, 1.0);\n"
+                "  FragColor = texture(texture1, TexCoord) * vec4(OurColor, 1.0);\n"
                 "}\0";
         ui32 fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
         glShaderSource(fragment_shader, 1, &fragment_shader_source, nullptr);
@@ -136,27 +227,7 @@ namespace
 
     void create_objects()
     {
-        glGenVertexArrays(1, &vao);
-        glGenBuffers(1, &vbo);
-        glGenBuffers(1, &ebo);
 
-        glBindVertexArray(vao);
-
-        glBindBuffer(GL_ARRAY_BUFFER, vbo);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-
-        // position attribute
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*) 0);
-        glEnableVertexAttribArray(0);
-        // color attribute
-        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*) (3 * sizeof(float)));
-        glEnableVertexAttribArray(1);
-        // texcoord attribute
-        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*) (6 * sizeof(float)));
-        glEnableVertexAttribArray(2);
     }
 
     void create_texture()
@@ -199,9 +270,6 @@ namespace
     {
         glDeleteTextures(1, &texture);
         glDeleteProgram(shader_program);
-        glDeleteBuffers(1, &ebo);
-        glDeleteBuffers(1, &vbo);
-        glDeleteVertexArrays(1, &vao);
     }
 
     void check_shader_compilation(ui32 shader)

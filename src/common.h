@@ -18,6 +18,9 @@ namespace BeepBoop
     using ui64 = uint64_t;
 
     template<typename T>
+    using Ref = std::shared_ptr<T>;
+
+    template<typename T>
     using Function = std::function<T>;
 
     using LifecycleFunction = Function<void()>;

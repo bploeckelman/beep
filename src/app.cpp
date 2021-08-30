@@ -18,39 +18,18 @@ using namespace BeepBoop;
 namespace
 {
     Config app_config;
-    bool app_is_exiting = false;
+    bool app_is_exiting;
 
     std::map<int, bool> keyboard;
 
     SDL_Window* window = nullptr;
 
+    // --------------------------------------------------
+
+    void init_sdl();
+    void create_window();
     void imgui_startup();
     void imgui_shutdown();
-
-    void init_sdl()
-    {
-        if (SDL_Init(SDL_INIT_VIDEO) != 0) {
-            fprintf(stderr, "failed to initialize sdl: %s\n", SDL_GetError());
-            App::exit();
-        }
-    }
-
-    void create_window()
-    {
-        auto window_flags = (SDL_WindowFlags)(SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
-        window = SDL_CreateWindow("beep",
-                SDL_WINDOWPOS_CENTERED,
-                SDL_WINDOWPOS_CENTERED,
-                app_config.width,
-                app_config.height,
-                window_flags);
-        if (window == nullptr) {
-            fprintf(stderr, "failed to create sdl window: %s\n", SDL_GetError());
-            App::exit();
-        }
-    }
-
-    // --------------------------------------------------
 
     void startup()
     {
@@ -96,6 +75,7 @@ bool App::run(const Config& config)
         }
 
         app_config.on_update();
+        Graphics::update();
 
         {
             ImGui_ImplOpenGL3_NewFrame();
@@ -159,6 +139,28 @@ void App::gl_context_attach_to_window(void *context)
 
 namespace
 {
+    void init_sdl()
+    {
+        if (SDL_Init(SDL_INIT_VIDEO) != 0) {
+            fprintf(stderr, "failed to initialize sdl: %s\n", SDL_GetError());
+            App::exit();
+        }
+    }
+
+    void create_window()
+    {
+        auto window_flags = (SDL_WindowFlags)(SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
+        window = SDL_CreateWindow("beep",
+                SDL_WINDOWPOS_CENTERED,
+                SDL_WINDOWPOS_CENTERED,
+                app_config.width,
+                app_config.height,
+                window_flags);
+        if (window == nullptr) {
+            fprintf(stderr, "failed to create sdl window: %s\n", SDL_GetError());
+            App::exit();
+        }
+    }
 
     void imgui_startup()
     {
