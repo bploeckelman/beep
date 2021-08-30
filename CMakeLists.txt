@@ -36,6 +36,8 @@ add_executable(${PROJECT_NAME}
         src/app.cpp
         src/game.h
         src/game.cpp
+        src/graphics.h
+        src/graphics.cpp
         )
 
 include_directories(${PROJECT_NAME} PRIVATE

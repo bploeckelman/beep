@@ -9,7 +9,7 @@ namespace BeepBoop
     {
         printf("game startup\n");
 
-        auto cfg = App::config();
+        auto cfg = App::get_config();
         glViewport(0, 0, cfg.width, cfg.height);
     }
 
