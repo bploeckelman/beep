@@ -41,6 +41,6 @@ int main()
     config.on_update = update;
     config.on_render = render;
 
-    App::run(config);
+    App::run(config, game);
     return 0;
 }

@@ -14,6 +14,7 @@
 
 #include "app.h"
 #include "graphics.h"
+#include "game.h"
 
 using namespace BeepBoop;
 namespace fs = std::filesystem;
@@ -55,7 +56,7 @@ const Config& App::get_config()
     return app_config;
 }
 
-bool App::run(const Config& config)
+bool App::run(const Config& config, Game& game)
 {
     printf("run\n");
 
@@ -89,8 +90,8 @@ bool App::run(const Config& config)
             ImGui::NewFrame();
             {
                 // populate imgui frame
-                ImGui::Begin("Hello");
-                ImGui::Text("beep");
+                ImGui::Begin("beep");
+                ImGui::SliderAngle("angle", &game.state.angle);
                 ImGui::End();
             }
 

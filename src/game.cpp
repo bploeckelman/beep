@@ -2,7 +2,6 @@
 #include "app.h"
 #include "graphics.h"
 
-#include <glm/glm.hpp>
 #include <glm/ext/matrix_transform.hpp>
 
 using namespace BeepBoop;
@@ -37,6 +36,8 @@ void Game::shutdown()
 
 void Game::update()
 {
+    transform = glm::mat4(1);
+    transform = glm::rotate(transform, state.angle, glm::vec3(0.0, 0.0, 1.0));
 }
 
 void Game::render()
@@ -72,7 +73,6 @@ namespace
         Graphics::mesh_set_indices(test_mesh, indices, 6);
 
         transform = glm::mat4(1);
-        transform = glm::rotate(transform, glm::radians(45.0f), glm::vec3(0.0, 0.0, 1.0));
     }
 
     void destroy_resources()

@@ -1,13 +1,14 @@
 #pragma once
 #include "config.h"
+#include "game.h"
 
 namespace BeepBoop
 {
     namespace App
     {
-        const Config &get_config();
+        const Config& get_config();
 
-        bool run(const Config &config);
+        bool run(const Config &config, Game& game);
         void exit();
 
         void* gl_context_create();
