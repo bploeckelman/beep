@@ -8,6 +8,9 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
+#include <glm/glm.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
 #include "graphics.h"
 #include "app.h"
 
@@ -18,7 +21,7 @@ namespace
 
     void *gl_context;
 
-    // todo - these gl resources should be in Game
+    glm::mat4 transform;
     ui32 shader_program;
     void create_resources();
     void destroy_resources();
@@ -174,8 +177,13 @@ void Graphics::draw_mesh(MeshRef mesh, TextureRef texture)
 {
     glBindTexture(GL_TEXTURE_2D, texture->gl_id);
     glUseProgram(shader_program);
+    ui32 transformLoc = glGetUniformLocation(shader_program, "transform");
+    glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(transform));
     glBindVertexArray(mesh->gl_id);
     glDrawElements(GL_TRIANGLES, mesh->num_indices, GL_UNSIGNED_INT, 0);
+    glBindVertexArray(0);
+    glUseProgram(0);
+    glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 void Graphics::mesh_set_vertices(MeshRef mesh, const void *vertices, i64 count)
@@ -241,11 +249,12 @@ namespace
                 "layout (location = 0) in vec3 aPos;\n"
                 "layout (location = 1) in vec3 aColor;\n"
                 "layout (location = 2) in vec2 aTexCoord;\n"
-                "out vec3 OurColor;"
-                "out vec2 TexCoord;"
+                "out vec3 OurColor;\n"
+                "out vec2 TexCoord;\n"
+                "uniform mat4 transform;\n"
                 "void main()\n"
                 "{\n"
-                "  gl_Position = vec4(aPos, 1.0);\n"
+                "  gl_Position = transform * vec4(aPos, 1.0);\n"
                 "  OurColor = aColor;"
                 "  TexCoord = aTexCoord;"
                 "}\0";
@@ -291,6 +300,9 @@ namespace
 
     void create_resources()
     {
+        transform = glm::mat4(1);
+        transform = glm::rotate(transform, glm::radians(45.0f), glm::vec3(0.0, 0.0, 1.0));
+
         create_shader();
         create_objects();
         create_texture();

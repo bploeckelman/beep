@@ -6,5 +6,6 @@ libs/sdl/*
 libs/imgui/*
 libs/stb/*
 libs/gl3w/*
+libs/glm/*
 !libs/.gitkeep
 

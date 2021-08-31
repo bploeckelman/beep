@@ -28,6 +28,9 @@ target_include_directories(imgui PRIVATE
 # Configure and include gl3w to wrangle opengl extensions for us
 add_subdirectory(libs/gl3w)
 
+# Configure and include glm for opengl math data types and operations
+add_subdirectory(libs/glm)
+
 add_executable(${PROJECT_NAME}
         src/main.cpp
         src/common.h
@@ -45,6 +48,7 @@ include_directories(${PROJECT_NAME} PRIVATE
         libs/stb
         libs/imgui
         libs/imgui/backends
+        libs/glm
         )
 
 target_link_libraries(${PROJECT_NAME}
