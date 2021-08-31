@@ -9,15 +9,20 @@
 #endif
 #include <cstdio>
 #include <map>
+#include <string>
+#include <filesystem>
 
 #include "app.h"
 #include "graphics.h"
 
 using namespace BeepBoop;
+namespace fs = std::filesystem;
 
 namespace
 {
     Config app_config;
+    std::string app_base_path;
+    std::string app_cwd_path;
     bool app_is_exiting;
 
     std::map<int, bool> keyboard;
@@ -45,7 +50,7 @@ namespace
 
 // ----------------------------------------------------------------------------
 
-const Config &App::get_config()
+const Config& App::get_config()
 {
     return app_config;
 }
@@ -63,6 +68,7 @@ bool App::run(const Config& config)
     {
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
+            ImGui_ImplSDL2_ProcessEvent(&event);
             switch (event.type) {
                 case SDL_QUIT:    app_is_exiting = true;
                 case SDL_KEYDOWN: keyboard[event.key.keysym.sym] = false; break;
@@ -81,8 +87,12 @@ bool App::run(const Config& config)
             ImGui_ImplOpenGL3_NewFrame();
             ImGui_ImplSDL2_NewFrame(window);
             ImGui::NewFrame();
-
-            // TODO: populate imgui frame
+            {
+                // populate imgui frame
+                ImGui::Begin("Hello");
+                ImGui::Text("beep");
+                ImGui::End();
+            }
 
             glClearColor(0, 191.f / 255.f, 1, 1);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -137,6 +147,64 @@ void App::gl_context_attach_to_window(void *context)
 
 // ----------------------------------------------------------------------------
 
+const char* App::get_base_path()
+{
+    if (app_base_path.empty())
+    {
+        app_base_path = SDL_GetBasePath();
+        printf("base path: %s\n", app_base_path.c_str());
+    }
+    return app_base_path.c_str();
+}
+
+const char* App::get_working_dir()
+{
+    if (app_cwd_path.empty())
+    {
+        auto path = fs::current_path();
+        app_cwd_path = path.u8string();
+        printf("working path: %s\n", app_cwd_path.c_str());
+    }
+    return app_cwd_path.c_str();
+}
+
+// ----------------------------------------------------------------------------
+
+std::string App::file_read_as_string(const char *path)
+{
+    printf("reading '%s'... ", path);
+
+    auto sdl_mode = "rt";
+    auto context = SDL_RWFromFile(path, sdl_mode);
+    if (context == nullptr)
+    {
+        fprintf(stderr, "failed to open file '%s' for reading\n", path);
+        App::exit();
+    }
+
+    std::string data;
+    size_t length = SDL_RWsize(context) + 1;
+    char* buffer = new char[length];
+    {
+        size_t read = SDL_RWread(context, buffer, sizeof(char), length);
+        if (read == 0)
+        {
+            fprintf(stderr, "failed to read from file '%s': %s\n", path, SDL_GetError());
+            App::exit();
+        }
+
+        SDL_RWclose(context);
+        printf("complete (%zu bytes)\n", read);
+
+        buffer[length - 1] = '\0';
+        data = std::string(buffer);
+    }
+    delete[] buffer;
+    return data;
+}
+
+// ----------------------------------------------------------------------------
+
 namespace
 {
     void init_sdl()
@@ -144,6 +212,11 @@ namespace
         if (SDL_Init(SDL_INIT_VIDEO) != 0) {
             fprintf(stderr, "failed to initialize sdl: %s\n", SDL_GetError());
             App::exit();
+        }
+
+        {
+            App::get_base_path();
+            App::get_working_dir();
         }
     }
 
@@ -180,4 +253,3 @@ namespace
     }
 
 }
-

@@ -21,11 +21,6 @@ namespace
 
     void *gl_context;
 
-    glm::mat4 transform;
-    ui32 shader_program;
-    void create_resources();
-    void destroy_resources();
-
     void check_shader_compilation(ui32 shader);
     void check_shader_linkage(ui32 program);
 
@@ -50,14 +45,10 @@ void Graphics::startup()
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     stbi_set_flip_vertically_on_load(true);
-
-    create_resources();
 }
 
 void Graphics::shutdown()
 {
-    destroy_resources();
-
     App::gl_context_destroy(gl_context);
 }
 
@@ -129,7 +120,7 @@ TextureRef Graphics::create_texture(const char *filename)
 
 void Graphics::destroy_texture(TextureRef texture)
 {
-    printf("deleting texture '%s'... ", texture->filename.c_str());
+    printf("deleting '%s'... ", texture->filename.c_str());
     {
         glDeleteTextures(1, &texture->gl_id);
     }
@@ -173,12 +164,13 @@ void Graphics::destroy_mesh(const MeshRef mesh)
     mesh->gl_id = 0;
 }
 
-void Graphics::draw_mesh(MeshRef mesh, TextureRef texture)
+void Graphics::draw_mesh(glm::mat4& transform, MeshRef mesh, TextureRef texture, ShaderRef shader)
 {
     glBindTexture(GL_TEXTURE_2D, texture->gl_id);
-    glUseProgram(shader_program);
-    ui32 transformLoc = glGetUniformLocation(shader_program, "transform");
-    glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(transform));
+    glUseProgram(shader->gl_id);
+    // todo - use uniform locations from shader
+    ui32 transform_loc = glGetUniformLocation(shader->gl_id, "transform");
+    glUniformMatrix4fv(transform_loc, 1, GL_FALSE, glm::value_ptr(transform));
     glBindVertexArray(mesh->gl_id);
     glDrawElements(GL_TRIANGLES, mesh->num_indices, GL_UNSIGNED_INT, 0);
     glBindVertexArray(0);
@@ -240,78 +232,54 @@ void Graphics::mesh_set_indices(MeshRef mesh, const void *indices, i64 count)
 
 // ----------------------------------------------------------------------------
 
-namespace
+ShaderRef Graphics::create_shader(const ShaderSource &source)
 {
-    void create_shader()
+    auto shader = new Shader();
     {
-        const char *vertex_shader_source = ""
-                "#version 330 core\n"
-                "layout (location = 0) in vec3 aPos;\n"
-                "layout (location = 1) in vec3 aColor;\n"
-                "layout (location = 2) in vec2 aTexCoord;\n"
-                "out vec3 OurColor;\n"
-                "out vec2 TexCoord;\n"
-                "uniform mat4 transform;\n"
-                "void main()\n"
-                "{\n"
-                "  gl_Position = transform * vec4(aPos, 1.0);\n"
-                "  OurColor = aColor;"
-                "  TexCoord = aTexCoord;"
-                "}\0";
+        shader->source = source;
+        shader->gl_id = glCreateProgram();
+        if (shader->gl_id == 0)
+        {
+            fprintf(stderr, "failed to create shader program\n");
+            App::exit();
+        }
+
         ui32 vertex_shader = glCreateShader(GL_VERTEX_SHADER);
-        glShaderSource(vertex_shader, 1, &vertex_shader_source, nullptr);
+        const char *vertex_source = shader->source.vertex.c_str();
+        glShaderSource(vertex_shader, 1, &vertex_source, nullptr);
         glCompileShader(vertex_shader);
         check_shader_compilation(vertex_shader);
 
-        const char *fragment_shader_source = ""
-                "#version 330 core\n"
-                "out vec4 FragColor;\n"
-                "in vec3 OurColor;\n"
-                "in vec2 TexCoord;\n"
-                "uniform sampler2D texture1;\n"
-                "void main()\n"
-                "{\n"
-                "  FragColor = texture(texture1, TexCoord) * vec4(OurColor, 1.0);\n"
-                "}\0";
         ui32 fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
-        glShaderSource(fragment_shader, 1, &fragment_shader_source, nullptr);
+        const char *fragment_source = shader->source.fragment.c_str();
+        glShaderSource(fragment_shader, 1, &fragment_source, nullptr);
         glCompileShader(fragment_shader);
         check_shader_compilation(fragment_shader);
 
-        shader_program = glCreateProgram();
-        glAttachShader(shader_program, vertex_shader);
-        glAttachShader(shader_program, fragment_shader);
-        glLinkProgram(shader_program);
-        check_shader_linkage(shader_program);
+        glAttachShader(shader->gl_id, vertex_shader);
+        glAttachShader(shader->gl_id, fragment_shader);
+        glLinkProgram(shader->gl_id);
+        check_shader_linkage(shader->gl_id);
 
         glDeleteShader(vertex_shader);
         glDeleteShader(fragment_shader);
     }
+    return ShaderRef(shader);
+}
 
-    void create_objects()
+void Graphics::destroy_shader(ShaderRef shader)
+{
+    if (shader->gl_id != 0)
     {
-
+        glDeleteProgram(shader->gl_id);
     }
+    shader->gl_id = 0;
+}
 
-    void create_texture()
-    {
+// ----------------------------------------------------------------------------
 
-    }
-
-    void create_resources()
-    {
-        transform = glm::mat4(1);
-        transform = glm::rotate(transform, glm::radians(45.0f), glm::vec3(0.0, 0.0, 1.0));
-
-        create_shader();
-        create_objects();
-        create_texture();
-    }
-
-    void destroy_resources()
-    {
-        glDeleteProgram(shader_program);
-    }
+namespace
+{
 
     void check_shader_compilation(ui32 shader)
     {

@@ -1,6 +1,7 @@
 #pragma once
-#include "common.h"
+#include <glm/glm.hpp>
 #include <string>
+#include "common.h"
 
 namespace BeepBoop
 {
@@ -25,14 +26,48 @@ namespace BeepBoop
     };
     using TextureRef = Ref<Texture>;
 
+    struct ShaderSource
+    {
+        std::string vertex;
+        std::string fragment;
+    };
+    enum class UniformType
+    {
+          none
+        , float1
+        , float2
+        , float3
+        , float4
+        , mat3x2
+        , mat4x4
+        , texture2d
+        , sampler2d
+    };
+    struct UniformInfo
+    {
+        std::string name;
+        UniformType type;
+        ui32 location;
+    };
+    struct Shader
+    {
+        ui32 gl_id;
+        ShaderSource source;
+        std::vector<UniformInfo> uniforms;
+    };
+    using ShaderRef = Ref<Shader>;
+
     namespace Graphics
     {
+        ShaderRef create_shader(const ShaderSource& source);
+        void destroy_shader(ShaderRef shader);
+
         TextureRef create_texture(const char* filename);
         void destroy_texture(TextureRef texture);
 
         MeshRef create_mesh();
         void destroy_mesh(MeshRef mesh);
-        void draw_mesh(MeshRef mesh, TextureRef texture);
+        void draw_mesh(glm::mat4& transform, MeshRef mesh, TextureRef texture, ShaderRef shader);
         void mesh_set_vertices(MeshRef mesh, const void* vertices, i64 count);
         void mesh_set_indices(MeshRef mesh, const void* indices, i64 count);
 
@@ -48,6 +83,3 @@ namespace BeepBoop
     }
 
 }
-
-
-

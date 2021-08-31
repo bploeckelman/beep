@@ -9,3 +9,4 @@ libs/gl3w/*
 libs/glm/*
 !libs/.gitkeep
 
+imgui.ini

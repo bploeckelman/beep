@@ -2,12 +2,17 @@
 #include "app.h"
 #include "graphics.h"
 
+#include <glm/glm.hpp>
+#include <glm/ext/matrix_transform.hpp>
+
 using namespace BeepBoop;
 
 namespace
 {
-    TextureRef test_texture;
+    glm::mat4 transform;
     MeshRef test_mesh;
+    TextureRef test_texture;
+    ShaderRef test_shader;
 
     void create_resources();
     void destroy_resources();
@@ -36,7 +41,7 @@ void Game::update()
 
 void Game::render()
 {
-    Graphics::draw_mesh(test_mesh, test_texture);
+    Graphics::draw_mesh(transform, test_mesh, test_texture, test_shader);
 }
 
 namespace
@@ -54,16 +59,26 @@ namespace
     };
     void create_resources()
     {
-        test_texture = Graphics::create_texture("test.png");
+        ShaderSource shader_source = {
+                App::file_read_as_string("resources/shaders/default.vert"),
+                App::file_read_as_string("resources/shaders/default.frag")
+        };
+        test_shader = Graphics::create_shader(shader_source);
+
+        test_texture = Graphics::create_texture("resources/images/test.png");
 
         test_mesh = Graphics::create_mesh();
         Graphics::mesh_set_vertices(test_mesh, vertices, 4);
         Graphics::mesh_set_indices(test_mesh, indices, 6);
+
+        transform = glm::mat4(1);
+        transform = glm::rotate(transform, glm::radians(45.0f), glm::vec3(0.0, 0.0, 1.0));
     }
 
     void destroy_resources()
     {
         Graphics::destroy_mesh(test_mesh);
         Graphics::destroy_texture(test_texture);
+        Graphics::destroy_shader(test_shader);
     }
 }
