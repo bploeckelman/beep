@@ -6,6 +6,7 @@ using namespace BeepBoop;
 
 namespace
 {
+    TextureRef test_texture;
     MeshRef test_mesh;
 
     void create_resources();
@@ -35,7 +36,7 @@ void Game::update()
 
 void Game::render()
 {
-    Graphics::draw_mesh(test_mesh);
+    Graphics::draw_mesh(test_mesh, test_texture);
 }
 
 namespace
@@ -53,6 +54,8 @@ namespace
     };
     void create_resources()
     {
+        test_texture = Graphics::create_texture("test.png");
+
         test_mesh = Graphics::create_mesh();
         Graphics::mesh_set_vertices(test_mesh, vertices, 4);
         Graphics::mesh_set_indices(test_mesh, indices, 6);
@@ -61,5 +64,6 @@ namespace
     void destroy_resources()
     {
         Graphics::destroy_mesh(test_mesh);
+        Graphics::destroy_texture(test_texture);
     }
 }

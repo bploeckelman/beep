@@ -20,7 +20,6 @@ namespace
 
     // todo - these gl resources should be in Game
     ui32 shader_program;
-    ui32 texture;
     void create_resources();
     void destroy_resources();
 
@@ -81,6 +80,61 @@ void Graphics::set_viewport(i32 x, i32 y, i32 width, i32 height)
 
 // ----------------------------------------------------------------------------
 
+TextureRef Graphics::create_texture(const char *filename)
+{
+    auto texture = new Texture();
+    printf("loading '%s'... ", filename);
+    {
+        texture->filename = filename;
+
+        int num_channels;
+        unsigned char* data = stbi_load(texture->filename.c_str(), &texture->width, &texture->height, &num_channels, 0);
+        if (data == nullptr)
+        {
+            fprintf(stderr, "failed to load texture data for '%s'\n", texture->filename.c_str());
+            delete texture;
+            return TextureRef();
+        }
+
+        glGenTextures(1, &texture->gl_id);
+        if (texture->gl_id == 0)
+        {
+            fprintf(stderr, "failed to generate gl texture id for '%s'\n", texture->filename.c_str());
+            stbi_image_free(data);
+            delete texture;
+            return TextureRef();
+        }
+        glBindTexture(GL_TEXTURE_2D, texture->gl_id);
+        {
+            // TODO: allow specification of wrap, filter, and bpp params
+            // set the texture wrapping parameters
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	// set texture wrapping to GL_REPEAT (default wrapping method)
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+            // set texture filtering parameters
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texture->width, texture->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+            glGenerateMipmap(GL_TEXTURE_2D);
+        }
+        glBindTexture(GL_TEXTURE_2D, 0);
+
+        stbi_image_free(data);
+    }
+    printf("complete\n");
+    return TextureRef(texture);
+}
+
+void Graphics::destroy_texture(TextureRef texture)
+{
+    printf("deleting texture '%s'... ", texture->filename.c_str());
+    {
+        glDeleteTextures(1, &texture->gl_id);
+    }
+    printf("complete\n");
+}
+
+// ----------------------------------------------------------------------------
+
 MeshRef Graphics::create_mesh()
 {
     Mesh* mesh = new Mesh();
@@ -116,9 +170,9 @@ void Graphics::destroy_mesh(const MeshRef mesh)
     mesh->gl_id = 0;
 }
 
-void Graphics::draw_mesh(MeshRef mesh)
+void Graphics::draw_mesh(MeshRef mesh, TextureRef texture)
 {
-    glBindTexture(GL_TEXTURE_2D, texture);
+    glBindTexture(GL_TEXTURE_2D, texture->gl_id);
     glUseProgram(shader_program);
     glBindVertexArray(mesh->gl_id);
     glDrawElements(GL_TRIANGLES, mesh->num_indices, GL_UNSIGNED_INT, 0);
@@ -232,31 +286,7 @@ namespace
 
     void create_texture()
     {
-        const char *filename = "test.png";
-        printf("loading '%s'... ", filename);
-        {
-            int width, height, numChannels;
-            unsigned char *data = stbi_load(filename, &width, &height, &numChannels, 0);
-            if (data == nullptr)
-            {
-                fprintf(stderr, "failed to load texture data for '%s'\n", filename);
-                App::exit();
-            }
 
-            glGenTextures(1, &texture);
-            glBindTexture(GL_TEXTURE_2D, texture);
-            // set the texture wrapping parameters
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	// set texture wrapping to GL_REPEAT (default wrapping method)
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-            // set texture filtering parameters
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-            glGenerateMipmap(GL_TEXTURE_2D);
-
-            stbi_image_free(data);
-        }
-        printf("success!\n");
     }
 
     void create_resources()
@@ -268,7 +298,6 @@ namespace
 
     void destroy_resources()
     {
-        glDeleteTextures(1, &texture);
         glDeleteProgram(shader_program);
     }
 
