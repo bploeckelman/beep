@@ -21,8 +21,8 @@ namespace
 
     void *gl_context;
 
-    void check_shader_compilation(ui32 shader);
-    void check_shader_linkage(ui32 program);
+    void check_shader_compile_status(ui32 shader);
+    void check_shader_link_status(ui32 program);
 
 }
 
@@ -248,18 +248,18 @@ ShaderRef Graphics::create_shader(const ShaderSource &source)
         const char *vertex_source = shader->source.vertex.c_str();
         glShaderSource(vertex_shader, 1, &vertex_source, nullptr);
         glCompileShader(vertex_shader);
-        check_shader_compilation(vertex_shader);
+        check_shader_compile_status(vertex_shader);
 
         ui32 fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
         const char *fragment_source = shader->source.fragment.c_str();
         glShaderSource(fragment_shader, 1, &fragment_source, nullptr);
         glCompileShader(fragment_shader);
-        check_shader_compilation(fragment_shader);
+        check_shader_compile_status(fragment_shader);
 
         glAttachShader(shader->gl_id, vertex_shader);
         glAttachShader(shader->gl_id, fragment_shader);
         glLinkProgram(shader->gl_id);
-        check_shader_linkage(shader->gl_id);
+        check_shader_link_status(shader->gl_id);
 
         glDeleteShader(vertex_shader);
         glDeleteShader(fragment_shader);
@@ -281,7 +281,7 @@ void Graphics::destroy_shader(ShaderRef shader)
 namespace
 {
 
-    void check_shader_compilation(ui32 shader)
+    void check_shader_compile_status(ui32 shader)
     {
         i32 success;
         char log[512];
@@ -294,7 +294,7 @@ namespace
         }
     }
 
-    void check_shader_linkage(ui32 program)
+    void check_shader_link_status(ui32 program)
     {
         i32 success;
         char log[512];
