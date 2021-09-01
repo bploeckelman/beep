@@ -240,7 +240,7 @@ void Graphics::mesh_set_indices(MeshRef mesh, const void *indices, i64 count)
 
 // ----------------------------------------------------------------------------
 
-ShaderRef Graphics::create_shader(const ShaderSource &source)
+ShaderRef Graphics::create_shader(const ShaderSource& source)
 {
     auto shader = new Shader();
     {
@@ -252,25 +252,27 @@ ShaderRef Graphics::create_shader(const ShaderSource &source)
             App::exit();
         }
 
-        ui32 vertex_shader = glCreateShader(GL_VERTEX_SHADER);
-        const char *vertex_source = shader->source.vertex.c_str();
-        glShaderSource(vertex_shader, 1, &vertex_source, nullptr);
-        glCompileShader(vertex_shader);
-        check_shader_compile_status(vertex_shader);
-
+        ui32 vertex_shader   = glCreateShader(GL_VERTEX_SHADER);
         ui32 fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
-        const char *fragment_source = shader->source.fragment.c_str();
-        glShaderSource(fragment_shader, 1, &fragment_source, nullptr);
-        glCompileShader(fragment_shader);
-        check_shader_compile_status(fragment_shader);
+        {
+            const char* vertex_source = shader->source.vertex.c_str();
+            const char* fragment_source = shader->source.fragment.c_str();
+            glShaderSource(vertex_shader, 1, &vertex_source, nullptr);
+            glShaderSource(fragment_shader, 1, &fragment_source, nullptr);
 
-        glAttachShader(shader->gl_id, vertex_shader);
-        glAttachShader(shader->gl_id, fragment_shader);
-        glLinkProgram(shader->gl_id);
-        check_shader_link_status(shader->gl_id);
+            glCompileShader(vertex_shader);
+            glCompileShader(fragment_shader);
+            check_shader_compile_status(vertex_shader);
+            check_shader_compile_status(fragment_shader);
 
-        glDetachShader(shader->gl_id, vertex_shader);
-        glDetachShader(shader->gl_id, fragment_shader);
+            glAttachShader(shader->gl_id, vertex_shader);
+            glAttachShader(shader->gl_id, fragment_shader);
+            glLinkProgram(shader->gl_id);
+            check_shader_link_status(shader->gl_id);
+
+            glDetachShader(shader->gl_id, vertex_shader);
+            glDetachShader(shader->gl_id, fragment_shader);
+        }
         glDeleteShader(vertex_shader);
         glDeleteShader(fragment_shader);
     }
