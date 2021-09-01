@@ -17,12 +17,17 @@ namespace
     void destroy_resources();
 }
 
+Game::State Game::state;
+
 void Game::startup()
 {
     printf("game startup\n");
 
     auto cfg = App::get_config();
     Graphics::set_viewport(0, 0, cfg.width, cfg.height);
+
+    Game::state.angle = 0.f;
+    Game::state.camera = Camera();
 
     create_resources();
 }
@@ -36,13 +41,23 @@ void Game::shutdown()
 
 void Game::update()
 {
-    transform = glm::mat4(1);
-    transform = glm::rotate(transform, state.angle, glm::vec3(0.0, 0.0, 1.0));
+    transform = glm::translate(
+            glm::rotate(
+                    glm::mat4(1), state.angle, glm::vec3(0, 0, 1)),
+                    glm::vec3(0, 0, -5));
+
+    state.camera.update();
 }
 
 void Game::render()
 {
-    Graphics::draw_mesh(transform, test_mesh, test_texture, test_shader);
+    Graphics::draw_mesh(
+            state.camera.projection,
+            state.camera.view,
+            transform,
+            test_mesh,
+            test_texture,
+            test_shader);
 }
 
 namespace

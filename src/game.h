@@ -1,5 +1,6 @@
 #pragma once
 #include "common.h"
+#include "graphics.h"
 
 namespace BeepBoop
 {
@@ -8,8 +9,9 @@ namespace BeepBoop
         struct State
         {
             float angle;
+            Camera camera;
         };
-        State state;
+        static State state;
 
         void startup();
         void shutdown();

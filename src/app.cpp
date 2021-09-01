@@ -11,13 +11,21 @@
 #include <map>
 #include <string>
 #include <filesystem>
+#include <chrono>
+
+#include <glm/glm.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 #include "app.h"
 #include "graphics.h"
 #include "game.h"
 
 using namespace BeepBoop;
+
 namespace fs = std::filesystem;
+namespace chrono = std::chrono;
+using TimePoint = chrono::time_point<chrono::steady_clock>;
+using Clock = std::chrono::high_resolution_clock;
 
 namespace
 {
@@ -25,6 +33,13 @@ namespace
     std::string app_base_path;
     std::string app_cwd_path;
     bool app_is_exiting;
+
+    float dt;
+    float millis_per_frame;
+    double accumulator;
+    TimePoint current;
+    TimePoint previous;
+    ui64 frames;
 
     std::map<int, bool> keyboard;
 
@@ -40,6 +55,11 @@ namespace
     void startup()
     {
         app_is_exiting = false;
+        dt = 0;
+        accumulator = 0;
+        frames = 0;
+        current = Clock::now();
+        previous = Clock::now();
 
         init_sdl();
         create_window();
@@ -67,6 +87,15 @@ bool App::run(const Config& config, Game& game)
 
     while (!app_is_exiting)
     {
+        dt = chrono::duration<float>(current - previous).count();
+        accumulator += dt;
+        if (accumulator >= 1.0f)
+        {
+            millis_per_frame = accumulator / (float)(frames);
+            frames = 0;
+            accumulator = 0;
+        }
+
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
             ImGui_ImplSDL2_ProcessEvent(&event);
@@ -90,8 +119,16 @@ bool App::run(const Config& config, Game& game)
             ImGui::NewFrame();
             {
                 // populate imgui frame
+                auto& camera = game.state.camera;
                 ImGui::Begin("beep");
+                ImGui::Text("Millis/Frame: %0.3f", millis_per_frame);
                 ImGui::SliderAngle("angle", &game.state.angle);
+                ImGui::SliderFloat3("pos", glm::value_ptr(camera.position), -5, 5);//, "%.3f", 0);
+                ImGui::SliderFloat3("target", glm::value_ptr(camera.target), -5, 5);//, "%.3f", 0);
+                ImGui::SliderFloat("fov", &camera.fov, 0.1f, 180);
+                ImGui::SliderFloat("aspect", &camera.aspect, 0.1f, 10);
+                ImGui::SliderFloat("near", &camera.near_dist, 0.001f, 100.f);
+                ImGui::SliderFloat("far", &camera.far_dist, 0.001f, 1000.f);
                 ImGui::End();
             }
 
@@ -104,6 +141,10 @@ bool App::run(const Config& config, Game& game)
             ImGui::Render();
             ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
             SDL_GL_SwapWindow(window);
+
+            frames++;
+            previous = current;
+            current = Clock::now();
         }
     }
 

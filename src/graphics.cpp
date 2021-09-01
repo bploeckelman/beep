@@ -164,18 +164,26 @@ void Graphics::destroy_mesh(const MeshRef mesh)
     mesh->gl_id = 0;
 }
 
-void Graphics::draw_mesh(glm::mat4& transform, MeshRef mesh, TextureRef texture, ShaderRef shader)
+void Graphics::draw_mesh(glm::mat4 &projection, glm::mat4 &view, glm::mat4 &model,
+                         MeshRef mesh, TextureRef texture, ShaderRef shader)
 {
-    glBindTexture(GL_TEXTURE_2D, texture->gl_id);
-    glUseProgram(shader->gl_id);
-    // todo - use uniform locations from shader
-    ui32 transform_loc = glGetUniformLocation(shader->gl_id, "transform");
-    glUniformMatrix4fv(transform_loc, 1, GL_FALSE, glm::value_ptr(transform));
-    glBindVertexArray(mesh->gl_id);
-    glDrawElements(GL_TRIANGLES, mesh->num_indices, GL_UNSIGNED_INT, 0);
-    glBindVertexArray(0);
-    glUseProgram(0);
-    glBindTexture(GL_TEXTURE_2D, 0);
+    shader->use();
+    {
+        shader->set_int("texture0", 0);
+        shader->set_mat4("projection", glm::value_ptr(projection));
+        shader->set_mat4("view", glm::value_ptr(view));
+        shader->set_mat4("model", glm::value_ptr(model));
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, texture->gl_id);
+        {
+            glBindVertexArray(mesh->gl_id);
+            glDrawElements(GL_TRIANGLES, mesh->num_indices, GL_UNSIGNED_INT, 0);
+            glBindVertexArray(0);
+        }
+        glBindTexture(GL_TEXTURE_2D, 0);
+    }
+    shader->stop();
 }
 
 void Graphics::mesh_set_vertices(MeshRef mesh, const void *vertices, i64 count)
@@ -276,6 +284,93 @@ void Graphics::destroy_shader(ShaderRef shader)
         glDeleteProgram(shader->gl_id);
     }
     shader->gl_id = 0;
+}
+
+void Shader::use()
+{
+    glUseProgram(gl_id);
+}
+
+void Shader::stop()
+{
+    glUseProgram(0);
+}
+
+void Shader::set_int(const char *uniform_name, int value)
+{
+    int location = glGetUniformLocation(gl_id, uniform_name);
+    glUniform1i(location, value);
+}
+
+void Shader::set_float(const char *uniform_name, float value)
+{
+    int location = glGetUniformLocation(gl_id, uniform_name);
+    glUniform1f(location, value);
+}
+
+void Shader::set_vec3(const char *uniform_name, const float *values)
+{
+    int location = glGetUniformLocation(gl_id, uniform_name);
+    glUniform3fv(location, 3, values);
+}
+
+void Shader::set_vec4(const char *uniform_name, const float *values)
+{
+    int location = glGetUniformLocation(gl_id, uniform_name);
+    glUniform4fv(location, 4, values);
+}
+
+void Shader::set_mat3(const char *uniform_name, const float *values)
+{
+    int location = glGetUniformLocation(gl_id, uniform_name);
+    glUniformMatrix3fv(location, 1, GL_FALSE, values);
+}
+
+void Shader::set_mat4(const char *uniform_name, const float *values)
+{
+    int location = glGetUniformLocation(gl_id, uniform_name);
+    glUniformMatrix4fv(location, 1, GL_FALSE, values);
+}
+
+// ----------------------------------------------------------------------------
+
+ui32 Camera::camera_id = 1;
+
+Camera::Camera()
+: id(camera_id++)
+, position(glm::vec3(0, 0, 0))
+, target(glm::vec3(0, 0, -1))
+, up(glm::vec3(0, 1, 0))
+, fov(45)
+, aspect((float) App::get_config().width / App::get_config().height)
+, near_dist(0.1f)
+, far_dist(100.0f)
+, projection(glm::mat4(1))
+, view(glm::mat4(1))
+{}
+
+void Camera::set(const glm::vec3& position, const glm::vec3& target)
+{
+    this->view = glm::lookAt(position, position + target,  up);
+
+    this->position = position;
+    this->target = target;
+}
+
+void Camera::set(float fov, float aspect, float near_dist, float far_dist)
+{
+    this->projection = glm::perspective(glm::radians(fov), aspect, near_dist, far_dist);
+
+    this->fov       = fov;
+    this->aspect    = aspect;
+    this->near_dist = near_dist;
+    this->far_dist  = far_dist;
+}
+
+void Camera::update()
+{
+    projection = glm::perspective(glm::radians(fov), aspect, near_dist, far_dist);
+    view = glm::lookAt(position, position + target, up);
 }
 
 // ----------------------------------------------------------------------------
