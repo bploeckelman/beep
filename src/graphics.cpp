@@ -261,6 +261,8 @@ ShaderRef Graphics::create_shader(const ShaderSource &source)
         glLinkProgram(shader->gl_id);
         check_shader_link_status(shader->gl_id);
 
+        glDetachShader(shader->gl_id, vertex_shader);
+        glDetachShader(shader->gl_id, fragment_shader);
         glDeleteShader(vertex_shader);
         glDeleteShader(fragment_shader);
     }
