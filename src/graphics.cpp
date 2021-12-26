@@ -1,5 +1,6 @@
 #include <GL/gl3w.h>
 #include <SDL.h>
+#include <math.h>
 #if defined(IMGUI_IMPL_OPENGL_ES2)
 #include <SDL_opengles2.h>
 #else
@@ -18,6 +19,14 @@ using namespace BeepBoop;
 
 namespace
 {
+    struct Jank
+    {
+        ui32 vao;
+        ui32 vbo;
+    };
+    Jank jank;
+    ShaderRef particle_shader;
+    const int num_particles = 20000;
 
     void *gl_context;
 
@@ -26,10 +35,29 @@ namespace
 
 }
 
+void Graphics::draw_jank(glm::mat4 &proj, glm::mat4 &view, glm::mat4 &model)
+{
+    particle_shader->use();
+    {
+        glm::vec3 campos(0, 0, -5);
+        particle_shader->set_int("u_pointsize", 5);
+        particle_shader->set_vec3("u_campos", glm::value_ptr(campos));
+        particle_shader->set_mat4("proj", glm::value_ptr(proj));
+        particle_shader->set_mat4("view", glm::value_ptr(view));
+        particle_shader->set_mat4("model", glm::value_ptr(model));
+
+        glBindVertexArray(jank.vao);
+        glDrawArrays(GL_POINTS, 0, num_particles);
+        glBindVertexArray(0);
+    }
+    particle_shader->stop();
+}
+
 void Graphics::startup()
 {
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 6);
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 
     gl_context = App::gl_context_create();
@@ -43,8 +71,83 @@ void Graphics::startup()
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
 
     stbi_set_flip_vertically_on_load(true);
+
+    // ----------------------------------------------------------------------------------
+    // just jank things
+
+    ShaderSource shader_source = {
+            App::file_read_as_string("resources/shaders/particle.vert"),
+            App::file_read_as_string("resources/shaders/particle.frag")
+    };
+    particle_shader = Graphics::create_shader(shader_source);
+
+    // setup buffer data arrays
+    const int positions_size = num_particles * 4;
+    const int velocities_size = num_particles * 4;
+    float *positions = new float[positions_size];
+    float *velocities = new float[velocities_size];
+    memset(positions, 0, positions_size);
+    memset(velocities, 0, velocities_size);
+
+    // generate positions around the surface of a sphere
+    float scale = 5;
+    float phiRad = (float) (M_PI * (3.0 - sqrt(5.0)));
+    float radius, theta;
+    for (int i = 0; i < num_particles; i += 4) {
+        float y = 1.f - (i / (num_particles - 1.f)) * 2.f; // y from -1 to 1
+        radius = (float) sqrt(1.f - y * y); // radius at y
+        theta = phiRad * i; // golden angle increment
+        float x = (float) cos(theta) * radius;
+        float z = (float) sin(theta) * radius;
+
+        positions[i + 0] = x * scale;
+        positions[i + 1] = y * scale;
+        positions[i + 2] = z * scale;
+        positions[i + 3] = 1;
+
+        // a nice creamy magenta
+        velocities[i + 0] = 1;
+        velocities[i + 1] = 0;
+        velocities[i + 2] = 1;
+        velocities[i + 3] = 1;
+    }
+
+    // setup packed buffer array
+    const int packed_data_size = 2 * (num_particles * 4);
+    float *packed_data = new float[packed_data_size];
+    memset(packed_data, 0, packed_data_size);
+
+    // copy position/velocity data into packed array
+    int positions_offset = 0;
+    int velocities_offset = positions_size;
+    memcpy(&packed_data[positions_offset], positions, positions_size);
+    memcpy(&packed_data[velocities_offset], velocities, velocities_size);
+
+    // generate array buffer and upload data
+    glGenBuffers(1, &jank.vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, jank.vbo);
+    glBufferData(GL_ARRAY_BUFFER, packed_data_size, packed_data, GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    // generate vertex array and setup attributes
+    int position_attrib = 0;
+    int color_attrib = 1;
+    glGenVertexArrays(1, &jank.vao);
+    glBindVertexArray(jank.vao);
+    glBindBuffer(GL_ARRAY_BUFFER, jank.vbo);
+    glVertexAttribPointer(position_attrib, 4, GL_FLOAT, GL_FALSE, 0, &packed_data[positions_offset]);
+    glVertexAttribPointer(color_attrib,    4, GL_FLOAT, GL_FALSE, 0, &packed_data[velocities_offset]);
+    glEnableVertexArrayAttrib(jank.vao, position_attrib);
+    glEnableVertexArrayAttrib(jank.vao, color_attrib);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+
+    delete[] velocities;
+    delete[] positions;
+    delete[] packed_data;
 }
 
 void Graphics::shutdown()
@@ -346,7 +449,7 @@ Camera::Camera()
 , fov(45)
 , aspect((float) App::get_config().width / App::get_config().height)
 , near_dist(0.1f)
-, far_dist(100.0f)
+, far_dist(1000.0f)
 , projection(glm::mat4(1))
 , view(glm::mat4(1))
 {}

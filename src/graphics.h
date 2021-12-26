@@ -118,6 +118,7 @@ namespace BeepBoop
 
         void* get_gl_context();
 
+        void draw_jank(glm::mat4 &proj, glm::mat4 &view, glm::mat4 &model);
     }
 
 }

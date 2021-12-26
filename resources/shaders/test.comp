@@ -1,0 +1,53 @@
+#version 460
+
+const int work_group_size = 64;
+layout(local_size_x = work_group_size, local_size_y = 1, local_size_z = 1) in;
+
+layout(std430) buffer;
+layout(binding = 0) buffer position_block { vec3 position[]; };
+layout(binding = 1) buffer velocity_block { vec3 velocity[]; };
+//layout(binding = 2) buffer density_block  { float density[]; };
+//layout(binding = 3) buffer pressure_block { float pressure[]; };
+//layout(binding = 4) buffer force_block    { vec3 force[]; };
+
+const float scale = 0.001;
+
+const vec3 gravity = vec3(0, -9.8, 0);
+const float dt = 0.1;
+
+void main()
+{
+    uint index = gl_GlobalInvocationID.x;
+//    uint index = int(gl_GlobalInvocationID);
+    vec3 pos = position[index].xyz;
+    vec3 vel = velocity[index].xyz;
+
+    // nbody
+//    vec3 accel = vec3(0);
+//    int N = int(gl_NumWorkGroups.x * gl_NumWorkGroups.x);
+//    for (int i = 0; i < N; ++i) {
+//        vec3 other = position[i];
+//        vec3 diff = pos - other;
+//        float invdist = 1.0 / (length(diff) + 0.001);
+//        accel -= diff * 0.1 * invdist * invdist * invdist;
+//    }
+
+//    vec3 gradient;
+//    float noise = snoise(gl_GlobalInvocationID, gradient);
+//    vec3 impulse = normalize(vec3(noise)) * scale;
+//    vec3 impulse = normalize(gradient) * scale;
+//    vec3 impulse = vec3(0,1,0) * scale;
+//
+//    vec3 newpos = pos + impulse;
+//    position[gid] = newpos;
+//    vec3 newvel = vec3(vel + dt * accel);
+    vec3 newvel = vec3(vel) * scale;
+//    vec3 newvel = vec3(0);
+    position[index] = pos + newvel;
+//    position[index] = vel;
+
+//    vec3 pp = pos + (vel * dt);// + (0.5 * dt * dt * gravity);
+//    vec3 vp = vel * (gravity * dt);
+//    position[index] = pp;
+//    velocity[index] = vp;
+}

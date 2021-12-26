@@ -45,6 +45,7 @@ void Game::update()
             glm::rotate(
                     glm::mat4(1), state.angle, glm::vec3(0, 0, 1)),
                     glm::vec3(0, 0, -5));
+//    transform = glm::translate(glm::mat4(1), glm::vec3(0, 0, -10));
 
     state.camera.update();
 }
@@ -58,6 +59,8 @@ void Game::render()
             test_mesh,
             test_texture,
             test_shader);
+
+    Graphics::draw_jank(state.camera.projection, state.camera.view, transform);
 }
 
 namespace
